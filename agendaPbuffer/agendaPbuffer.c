@@ -2,35 +2,25 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define TAM_NOME 50
-#define TAM_EMAIL 50
-#define TAM_PESSOA ( TAM_NOME + sizeof( int ) + TAM_EMAIL )
-#define TAM_CABECAMEM ( sizeof( int ) * 4 + 50 + 50 ) // Espaço de memoria antes da primeira pessoa adicionada na lista
+#define TAM_MEMHEAD ( sizeof( int ) * 5 + 50 + 50 ) // Espaço de memoria antes da primeira pessoa adicionada na lista
 
-void AdicionarPessoa( void *pBuffer, int *numeroDePessoas, char *limpaBuffer );
-void RemoverPessoa( void *inicioLista, int *numeroDePessoas, char *buscaEmail, int *loopControl, char *limpaBuffer, int *achou );
-void BuscarPessoa( void *inicioLista, int *numeroDePessoas, char *buscaEmail, int *loopControl, char *limpaBuffer, int *achou );
-void ListarTodos( void *inicioLista, int *numeroDePessoas, int *loopControl );
+void AdicionarPessoa( void **pBuffer );
+void ListarTodos( void **pBuffer );
+void BuscarPessoa( void **pBuffer );
+void RemoverPessoa( void ** pBuffer );
+
 
 int main()
 {
-    char *pBuffer = ( char* ) malloc( TAM_CABECAMEM ); 
+    void *pBuffer = malloc( TAM_MEMHEAD ); 
     if( !pBuffer ){
         printf("\t***** Erro no malloc *****\n");
         exit(1);
-    }
-    char *inicioLista = pBuffer + TAM_CABECAMEM;
-    char *buscaEmail = pBuffer + sizeof( int ) * 4 + 50;
-    char *limpaStdin = ( char* ) ( pBuffer + sizeof( int ) * 4 );
+    }    
+    memset( pBuffer, 0, TAM_MEMHEAD );
     int *escolha = ( int* )pBuffer;
     *escolha = 0;
-    int *numeroDePessoas = ( int* )pBuffer + 1;
-    *numeroDePessoas = 0;
-    int *loopControl = ( int* )pBuffer + 2;
-    *loopControl = 0;
-    int *achou = ( int* )pBuffer + 3;
-    *achou = 1;
-    
+   
     
 
     do{
@@ -42,30 +32,32 @@ int main()
         printf("\t\t5 - Sair\n\n");
         printf("Escolha uma opçao: ");
         scanf("%d", escolha);
+        getchar();
+
         while( *escolha < 1 || *escolha > 5 ){
             printf("***** Opçao invalida. Tente novamente *****\n");
             printf("Escolha uma opçao: ");
             scanf("%d", escolha);
+            getchar();
         }
-        fgets( limpaStdin, 50, stdin );
 
         switch( *escolha ){
             case 1:
-            pBuffer = AdicionarPessoa( pBuffer, numeroDePessoas, limpaStdin );
+            AdicionarPessoa( &pBuffer );
             break;
 
-             case 2:
-            ListarTodos( inicioLista, numeroDePessoas, loopControl );
+            case 2:
+            ListarTodos( &pBuffer );
             break;
            
             case 3:
-            BuscarPessoa( inicioLista, numeroDePessoas, buscaEmail, loopControl, limpaStdin, achou );
+            BuscarPessoa( &pBuffer );
             break;
-            
+             
             case 4:
-            RemoverPessoa( inicioLista, numeroDePessoas, buscaEmail, loopControl, limpaStdin, achou );
+            RemoverPessoa( &pBuffer );
             break;
-
+  
             case 5:
             printf("\t===== Encerrando o programa =====\n");
             break; 
@@ -80,77 +72,131 @@ int main()
     return 0;
 }
 
-void RemoverPessoa( void *inicioLista, int *numeroDePessoas, char *buscaEmail, int *loopControl, char *limpaBuffer, int *achou ){
-    printf("Digite o e-mail da pessoa que esta buscando: ");
-    fgets( buscaEmail, TAM_EMAIL, stdin );
-
-    while( *loopControl < *numeroDePessoas ){
-        char *lista = ( char* )inicioLista + *loopControl * TAM_PESSOA;
-        char *listaProximo = ( char* )inicioLista + ( *loopControl + 1 ) * TAM_PESSOA;
-        if(  strcmp( buscaEmail, lista + TAM_NOME + sizeof( int ) ) == 0 ){
-            *achou = 0;
-            if( *loopControl == *numeroDePessoas - 1 ){
-                ( *numeroDePessoas )--;    
-                break;
-            }
-            memmove( lista, listaProximo, ( *numeroDePessoas - ( *loopControl + 1 ) ) * TAM_PESSOA );
-            ( *numeroDePessoas )--;
-            break;
-        }
-        ( *loopControl )++;
-    }
-    *loopControl = 0;
-    if( *achou == 1 ){
-        printf("\t*****Nenhum usario com esse e-mail foi encontrado *****\n");
-    }
-    *achou = 1;
-}
-
-void AdicionarPessoa( void *bufferAdd, int *numeroDePessoas, char *limpaBuffer ){
-    bufferAdd = realloc( bufferAdd, TAM_CABECAMEM + ( *numeroDePessoas + 1 ) * TAM_PESSOA );
-    if( !bufferAdd ){
-        printf("\t***** Erro no realloc *****\n");
-        exit(1);
-    }
-    char *pessoaNova = bufferAdd + TAM_CABECAMEM + *numeroDePessoas * TAM_PESSOA;
+void AdicionarPessoa( void **pBuffer ){
+    char *stringBufferNome = ( char* )*pBuffer + sizeof( int ) * 5; // Mudar o numero de sizeof( int ) sempre que nova variavel
+    char *stringBufferEmail = ( char* )*pBuffer + sizeof( int ) * 5 + 50;
+    int *quantPessoas = ( int* )*pBuffer + 1;
+    int *tamPessoa = ( int* )*pBuffer + 2;
+    int *tamTodos = ( int* )*pBuffer + 3;
+    
     printf("Digite o nome: ");
-    fgets( pessoaNova, TAM_NOME, stdin );
-    printf("Digite a idade: ");
-    scanf( "%d", ( char* )pessoaNova + TAM_NOME );
-    fgets( limpaBuffer, 50, stdin );
+    fgets( stringBufferNome, 50, stdin );
+    stringBufferNome[strcspn(stringBufferNome, "\n")] = '\0';
     printf("Digite o e-mail: ");
-    fgets( ( char* )pessoaNova + TAM_NOME + sizeof( int ), TAM_EMAIL, stdin );
-    ( *numeroDePessoas )++;
+    fgets( stringBufferEmail, 50, stdin );
+    stringBufferEmail[strcspn(stringBufferEmail, "\n")] = '\0';
+    *tamPessoa = strlen( stringBufferNome ) + strlen( stringBufferEmail ) + sizeof( int ) + 2;
+    
+
+    char *temp;
+    temp = realloc( *pBuffer, TAM_MEMHEAD + *tamTodos + *tamPessoa );
+    if( !temp ){
+        printf( "\t\t***** Erro no Realloc *****\n" );
+        exit( 1 );
+    }
+    *pBuffer = temp;
+    
+
+    // === Atualizando os Ponteiros ===
+    stringBufferNome = ( char* )*pBuffer + sizeof( int ) * 5; // Mudar o numero de sizeof( int ) sempre que nova variavel
+    stringBufferEmail = ( char* )*pBuffer + sizeof( int ) * 5 + 50;
+    quantPessoas = ( int* )*pBuffer + 1;
+    tamPessoa = ( int* )*pBuffer + 2;
+    tamTodos = ( int* )*pBuffer + 3;
+
+    char *inicioLista = ( char* )*pBuffer + TAM_MEMHEAD + *tamTodos;
+    memcpy( inicioLista, stringBufferNome, strlen( stringBufferNome ) + 1 );
+    printf( "Digite sua idade: " );
+    scanf( "%d", ( int* )( ( char* )inicioLista + sizeof( char ) * ( strlen( stringBufferNome ) + 1 ) ) );
+    getchar();
+    memcpy( ( char* )inicioLista + strlen( stringBufferNome ) + 1 + sizeof( int ), stringBufferEmail, strlen( stringBufferEmail ) + 1 );
+
+    *quantPessoas++;
+    *tamTodos += *tamPessoa;
 }
 
-void BuscarPessoa( void *inicioLista, int *numeroDePessoas, char *buscaEmail, int *loopControl, char *limpaBuffer, int *achou ){
-    printf("Digite o e-mail da pessoa que esta buscando: ");
-    fgets( buscaEmail, TAM_EMAIL, stdin );
+void ListarTodos( void **pBuffer ){
+    char *percorreLista = ( char* )*pBuffer + TAM_MEMHEAD;
+    int *tamTodos = ( int* )*pBuffer + 3;
+    char *fimLista = ( char* )*pBuffer + TAM_MEMHEAD + *tamTodos;
 
-    while( *loopControl < *numeroDePessoas ){
-        char *lista = ( char* )inicioLista + *loopControl * TAM_PESSOA;
-        if(  strcmp( buscaEmail, lista + TAM_NOME + sizeof( int ) ) == 0 ){
-            *achou = 0;
-            printf( "\tNome[%d]: %s", *loopControl, lista );
-            printf( "\tIdade[%d]: %d\n", *loopControl, *( int* )(lista + TAM_NOME) );
-            printf( "\tE-mail[%d]: %s\n", *loopControl, lista + TAM_NOME + sizeof( int ) );
-        } 
-        ( *loopControl )++;
+    while( percorreLista < fimLista ){
+        printf("\tNome: %s\n", percorreLista );
+        percorreLista += strlen( percorreLista ) + 1;
+        printf("\tIdade: %d\n", *( int* )percorreLista );
+        percorreLista += sizeof( int );
+        printf("\tE-mail: %s\n\n", percorreLista);
+        percorreLista += strlen( percorreLista ) + 1;
     }
-    *loopControl = 0;
-    if( *achou == 1 ){
-        printf("\t*****Nenhum usario com esse e-mail foi encontrado *****\n");
-    }
-    *achou = 1;
 }
 
-void ListarTodos( void *inicioLista, int *numeroDePessoas, int *loopControl ){
-    while( *loopControl < *numeroDePessoas ){
-        char *lista = ( char* )inicioLista + *loopControl * TAM_PESSOA;
-        printf( "\tNome[%d]: %s", *loopControl, lista );
-        printf( "\tIdade[%d]: %d\n", *loopControl, *( int* )(lista + TAM_NOME) );
-        printf( "\tE-mail[%d]: %s\n", *loopControl, lista + TAM_NOME + sizeof( int ) );
-        ( *loopControl )++;
+void BuscarPessoa( void **pBuffer ){
+    char *percorreLista = ( char* )*pBuffer + TAM_MEMHEAD;
+    char *pessoaBusca = ( char* )*pBuffer + sizeof( int ) * 4;
+    int *tamTodos = ( int* )*pBuffer + 3;
+    char *fimLista = ( char* )*pBuffer + TAM_MEMHEAD + *tamTodos;
+    printf("Digite o nome que deseja buscar: ");
+    fgets( pessoaBusca, 50, stdin );
+    pessoaBusca[strcspn(pessoaBusca, "\n")] = '\0';
+
+    while( percorreLista < fimLista ){
+            if( strcmp( percorreLista, pessoaBusca ) == 0 ){
+                printf("\n\tNome: %s\n", percorreLista );
+                percorreLista += strlen( percorreLista ) + 1;
+                printf("\tIdade: %d\n", *( int* )percorreLista );
+                percorreLista += sizeof( int );
+                printf("\tE-mail: %s\n\n", percorreLista);
+                percorreLista += strlen( percorreLista ) + 1;
+                return;
+            }
+        percorreLista += strlen( percorreLista ) + 1;
+        percorreLista += sizeof( int );
+        percorreLista += strlen( percorreLista ) + 1;
     }
-    *loopControl = 0;
+    printf("\t*** Pessoa nao encontrada ***\n");
 }
+
+void RemoverPessoa( void **pBuffer ){
+    char *percorreLista = ( char* )*pBuffer + TAM_MEMHEAD;
+    char *pessoaRemove = ( char* )*pBuffer + sizeof( int ) * 4;
+    int *quantPessoas = ( int* )*pBuffer + 1;
+    int *numPessoaLista = ( int* )*pBuffer + 4;
+    *numPessoaLista = 0;
+    int *tamTodos = ( int* )*pBuffer + 3;
+    char *fimLista = ( char* )*pBuffer + TAM_MEMHEAD + *tamTodos;
+
+    printf("Digite o nome de quem deseja remover: ");
+    fgets( pessoaRemove, 50, stdin );
+    pessoaRemove[strcspn(pessoaRemove, "\n")] = '\0';
+
+    while( percorreLista < fimLista ){
+         if( strcmp( percorreLista, pessoaRemove ) == 0){
+            printf("\t*** Pessoa Removida ***\n");
+            if( *numPessoaLista == *quantPessoas - 1 ){
+                memset( percorreLista, 0, fimLista - percorreLista );
+                *tamTodos -= ( fimLista - percorreLista );
+                *quantPessoas--;
+                return;
+            }
+            char *destinoMem = percorreLista;
+            percorreLista += strlen( percorreLista ) + 1;
+            percorreLista += sizeof( int ); 
+            percorreLista += strlen( percorreLista ) + 1;
+            memmove( destinoMem, percorreLista, fimLista - percorreLista );
+            *tamTodos -= ( percorreLista - destinoMem );
+            *quantPessoas--;
+            return;
+        } else {
+            percorreLista += strlen( percorreLista ) + 1;
+            percorreLista += sizeof( int );
+            percorreLista += strlen( percorreLista ) + 1;
+            *numPessoaLista++;
+        }
+    }
+    printf("\t*** Pessoa nao encontrada ***\n");
+}
+
+
+
+
+   
