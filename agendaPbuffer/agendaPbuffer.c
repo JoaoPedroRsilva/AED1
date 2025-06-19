@@ -63,9 +63,9 @@ int main()
             break; 
 
             default:
-            printf("\t***** Entrada inválida. Tente novamente *****\n");
-            
+            printf("\t***** Entrada inválida. Tente novamente *****\n"); 
         }
+        escolha = ( int* )pBuffer;
     }while( *escolha != 5 );
 
     free(pBuffer);
